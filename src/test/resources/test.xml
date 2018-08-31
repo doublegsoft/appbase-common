@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sqls>
+    <sql id="test.injection">
+    <![CDATA[
+        select * from abc where name = ${name};
+    ]]>
+    </sql>
+    <sql id="test.like.injection">
+    <![CDATA[
+        select * from abc where name like ${_like(name)};
+    ]]>
+    </sql>
+    <sql id="test.llike.injection">
+    <![CDATA[
+        select * from abc where name like ${_llike(name)};
+    ]]>
+    </sql>
+    <sql id="test.rlike.injection">
+    <![CDATA[
+        select * from abc where name like ${_rlike(name)};
+    ]]>
+    </sql>
+    <sql id="test.in.injection">
+    <![CDATA[
+        select * from abc where name in ${_in(names)};
+    ]]>
+    </sql>
+</sqls>

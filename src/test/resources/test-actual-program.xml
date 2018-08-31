@@ -1,0 +1,1508 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<sqls>
+    <sql id="reservior.findAll">
+    <![CDATA[
+    	select RSINCD, wrcd, rsnm, cnty, CITY,TOWN,PRV,MDNUM from PAD_RESERVOIR_BASIC
+    ]]>
+    </sql>
+
+
+	<sql id="reservior.findAllVisible">
+        <!--获取当前账号所有可以见到的水库信息-->
+		<![CDATA[
+    select basic.RSINCD,basic.RSNM,basic.PRSC,basic.PRST,basic.CNTY,basic.ISISSUE,
+        (select audit.RGST from PAD_RESERVOIR_AUDIT_ALL audit where audit.RSINCD = basic.RSINCD) RGST,
+        (select count(*) as historyCount from PAD_RESERVOIR_BASIC_HISTORY history where history.RSINCD = basic.RSINCD) historyCount,
+        (select count(*) from pad_reservoir_record_review_detail rr where rr.rsincd = basic.rsincd and rr.status = 'P') as revCount,
+        (select count(*) from pad_reservoir_record_review_detail rr where rr.rsincd = basic.rsincd and rr.status = 'C') as createdCount
+	    from PAD_RESERVOIR_BASIC basic 
+	    where 1=1 --MDNUM is not null 
+	    and (basic.isdel is null or basic.isdel = 0)
+	     #if (${RSNM})
+		 and RSNM like '%${RSNM}%'
+		 #end
+		 #if (${CNTY})
+		 and CNTY_CD like '%${CNTY}%'
+		 #end
+		 #if (${PRSC})
+		 and PRSC like '%${PRSC}%'
+		 #end
+    and ${priv.get('basic', 'wrcd', 'WR', '2,3')} 
+    order by basic.RSINCD desc
+    ]]>
+	</sql>
+	
+	<sql id="reservior.findManageList">
+        <!--获取当前账号所有可以见到的水库信息-->
+		<![CDATA[
+    select basic.RSINCD,basic.RSNM,basic.PRSC,basic.PRST,basic.CNTY,basic.ISISSUE,basic.isdel
+	    from PAD_RESERVOIR_BASIC basic
+	    where MDNUM is not null 
+	 #if (${RSNM})
+		 and RSNM like '%${RSNM}%'
+		 #end
+		 #if (${CNTY})
+		 and CNTY_CD like '%${CNTY}%'
+		 #end
+		 #if (${PRSC})
+		 and PRSC like '%${PRSC}%'
+		 #end
+		 #if (${isdel}=='1') 
+		 and basic.isdel = 1
+		 #elseif (${isdel}=='2') 
+		 and (basic.isdel is null or basic.isdel = 0)
+		 #end
+    and ${priv.get('basic', 'wrcd', 'WR', '2,3')} order by basic.RSINCD desc
+    ]]>
+	</sql>
+	
+	<sql id="reservior.updateDeleteStatus">
+	<![CDATA[
+		update PAD_RESERVOIR_BASIC set isdel = ${isdel} where RSINCD=${id}
+	]]>
+	</sql>
+	
+	<sql id="reservior.findAllhavesupplied">
+		<!--获取当前账号所有已经申请/审核/审批的水库的所有信息RSINCD-->
+		<![CDATA[
+    select * from PAD_RESERVOIR_AUDIT_ALL
+    ]]>
+	</sql>
+
+	<!--从普查数据里查询数据-->
+	<sql id="reservior.findGeneralBasic">
+		<![CDATA[
+		select * from PAD_RESERVOIR_GENERALSURVEY_ORIGIN where 1=1
+		 #if (${id})
+		    and rsincd='${id}'
+		 #end
+		 #if (${wrcd})
+		    and wrcd='${wrcd}'
+		 #end
+	]]>
+	</sql>
+
+	<sql id="reservior.findBasic">
+	<![CDATA[
+		select * from PAD_RESERVOIR_BASIC where 1=1
+		#if (${id})
+		    and RSINCD = '${id}'
+		#end
+		and MDNUM >'0'
+
+		#if (${RSNM})
+		    and RSNM like '%${RSNM}%'
+		#end
+		#if (${PRSC})
+		    and PRSC = '${PRSC}'
+		#end
+
+		#if (${PRV})
+		    and PRV = '${PRV}'
+		#end
+		#if (${CITY})
+		    and CITY = '${CITY}'
+		#end
+		#if (${CNTY})
+		    and CNTY = '${CNTY}'
+		#end
+		#if (${TOWN})
+		    and TOWN like '%${TOWN}%'
+		#end
+	]]>
+	</sql>
+	
+	<sql id="reservior.findReviewBasic">
+	<![CDATA[
+		select * from PAD_RESERVOIR_BASIC_HISTORY where RSINCD='${rsincd}' AND VERSION = '${version}'
+	]]>
+	</sql>
+
+	<sql id="reservior.findDataFromPadCount">
+		<![CDATA[
+		select * from PAD_RESERVOIR_2015_COUNT
+		 where CNTY like '${CNTY}%' and RSNM like '%${RSNM}%'
+	]]>
+	</sql>
+
+
+	<sql id="reservior.queryReservoirFnByReservoirId">
+	<![CDATA[
+	select * from PAD_WRP_RSV_FN where 1=1
+     #if (${id})
+        and RSINCD='${id}'
+     #end
+     order by RSFNIM
+	]]>
+	</sql>
+	
+	<sql id="reservior.deleteReservoirFnByReservoirId">
+	<![CDATA[
+		delete from  PAD_WRP_RSV_FN where RSINCD=${id}
+	]]>
+	</sql>
+	
+	<sql id="reservior.addReservoirFn">
+	<![CDATA[
+		insert into PAD_WRP_RSV_FN(RSINCD,RSFN,RSFNIM) values(${RSINCD},'${RSFN}','${RSFNIM}')
+	]]>
+	</sql>
+
+	<sql id="reservior.applyList">
+	<![CDATA[
+	select basic.RSINCD,basic.RSNM,basic.PRSC,basic.PRST,basic.CNTY  
+	from PAD_RESERVOIR_BASIC basic where basic.RSINCD not in 
+	(select RSINCD  from PAD_RESERVOIR_AUDIT_ALL where MNUNHDSG is not null and MNUNHDSG !='') 
+	and basic.MDNUM is not null
+	 #if (${RSNM}) 
+		 and RSNM like '%${RSNM}%'
+     #end 
+		 #if (${CNTY}) 
+		 and CNTY_CD like '%${CNTY}%' 
+		 #end
+		 #if (${PRSC}) 
+		 and PRSC like '%${PRSC}%' 
+		 #end
+    and ${priv.get('basic', 'wrcd', 'WR', '2,3')} order by basic.RSINCD desc
+	]]>
+	</sql>
+
+	<sql id="reservior.findSafe">
+	<![CDATA[
+		select * from PAD_RESERVOIR_SAFE_IDENTIFICATION where RSINCD=${id}
+	]]>
+	</sql>
+	<sql id="reservior.findReviewSafe">
+	<![CDATA[
+		select * from PAD_RESERVOIR_SAFE_IDENTIFICATION_HISTORY where RSINCD=${rsincd}  AND VERSION = ${version}
+	]]>
+	</sql>
+	<sql id="reservior.findCnbsin">
+	<![CDATA[
+		select * from PAD_WRP_RSV_CNBSIN where RSINCD=${id}
+	]]>
+	</sql>
+	<sql id="reservior.findReviewCnbsin">
+	<![CDATA[
+		select * from PAD_WRP_RSV_CNBSIN_HISTORY where RSINCD=${rsincd} AND VERSION = '${version}'
+	]]>
+	</sql>
+	<sql id="reservior.findCharacter">
+	<![CDATA[
+		select * from PAD_RESERVOIR_CHARACTERISTICS where RSINCD=${id}
+	]]>
+	</sql>
+	<sql id="reservior.findReviewCharacter">
+	<![CDATA[
+		select * from PAD_RESERVOIR_CHARACTERISTICS_HISTORY where RSINCD=${rsincd} AND VERSION = ${version}
+	]]>
+	</sql>
+	<sql id="reservior.findBlockBuild">
+	<![CDATA[
+		select * from PAD_RESERVOIR_BLOCK_WATER_BUILD where RSINCD=${id} 
+	]]>
+	</sql>
+	<sql id="reservior.findMaxBlockBuild">
+	<![CDATA[
+		select * from PAD_RESERVOIR_BLOCK_WATER_BUILD where RSINCD=${id} and STCD = (select max(STCD) from PAD_RESERVOIR_BLOCK_WATER_BUILD where RSINCD=${id})
+	]]>
+	</sql>
+	<sql id="reservior.findReviewBlockBuild">
+	<![CDATA[
+		select * from PAD_RESERVOIR_BLOCK_WATER_BUILD_HISTORY where RSINCD=${rsincd} AND VERSION = ${version}
+	]]>
+	</sql>
+	<sql id="reservior.deleteBlockBuild">
+	<![CDATA[
+		delete from PAD_RESERVOIR_BLOCK_WATER_BUILD where STCD=${id}
+	]]>
+	</sql>
+    <sql id="reservior.deleteOtherBuild">
+    <![CDATA[
+        delete from ${table} where STCD=${id}
+    ]]>
+    </sql>
+	<sql id="reservior.findBlockBuildById">
+	<![CDATA[
+		select * from PAD_RESERVOIR_BLOCK_WATER_BUILD where STCD=${id}
+	]]>
+	</sql>
+	<sql id="reservior.findReviewBlockBuildById">
+	<![CDATA[
+		select * from PAD_RESERVOIR_BLOCK_WATER_BUILD_HISTORY where STCD=${stcd} AND VERSION = ${version}
+	]]>
+	</sql>
+	<sql id="reservior.findDrainBuild">
+	<![CDATA[
+		select * from PAD_RESERVOIR_DRAIN_BUILD where RSINCD=${id}
+	]]>
+	</sql>
+	<sql id="reservior.findMaxDrainBuild">
+	<![CDATA[
+		select * from PAD_RESERVOIR_DRAIN_BUILD where RSINCD=${id} and STCD = (select max(STCD) from PAD_RESERVOIR_DRAIN_BUILD where RSINCD=${id})
+	]]>
+	</sql>
+	<sql id="reservior.findReviewDrainBuild">
+	<![CDATA[
+		select * from PAD_RESERVOIR_DRAIN_BUILD_HISTORY where RSINCD=${rsincd} AND VERSION=${version}
+	]]>
+	</sql>
+	<sql id="reservior.findNswnmDrainBuild">
+	<![CDATA[
+		select * from PAD_RESERVOIR_DRAIN_BUILD where RSINCD=${id} and NSWNM = '${nswnm}'
+	]]>
+	</sql>
+	<sql id="reservior.findEswnmDrainBuild">
+	<![CDATA[
+		select * from PAD_RESERVOIR_DRAIN_BUILD where RSINCD=${id} and ESWNM = '${eswnm}'
+	]]>
+	</sql>
+	<sql id="reservior.findOsnmDrainBuild">
+	<![CDATA[
+		select * from PAD_RESERVOIR_DRAIN_BUILD where RSINCD=${id} and OSNM = '${osnm}'
+	]]>
+	</sql>
+	<sql id="reservior.deleteDrainBuild">
+	<![CDATA[
+		delete from PAD_RESERVOIR_DRAIN_BUILD where STCD=${id}
+	]]>
+	</sql>
+	
+	<sql id="reservior.deleteValidate">
+	<![CDATA[
+		delete from PAD_RESERVOIR_VALIDATE where RSINCD = '${RSINCD}'  and MODULE1 = '${MODULE1}' 
+	]]>
+	</sql>
+	<sql id="reservior.validate">
+	<![CDATA[
+		select * from PAD_RESERVOIR_VALIDATE where RSINCD = '${RSINCD}' 
+	]]>
+	</sql>
+	
+	
+	<sql id="reservior.validateTap1">
+		<![CDATA[
+			select SUM(cc.data) data
+				from (
+					select COUNT(1) data from PAD_RESERVOIR_BASIC prb where prb.rsincd= ${RSINCD}
+					and (
+						prb.RSNM is null or 
+						prb.PRSC is null or
+						prb.PRV is null or
+						prb.CITY is null or
+						prb.CNTY is null or
+						prb.RSOV is null or
+						prb.LNG is null or
+						prb.LAT is null or
+						prb.RV is null or
+						prb.CTLT is null or
+						prb.CTLO is null or
+						prb.FLTM is null or
+
+						(prb.TOWN is null and (prb.PRSC='小（2）型' or prb.PRSC='小（1）型'))
+
+					)
+					union
+					  select case when  data >0 then 0 else 1 end from (select COUNT(1) data from PAD_WRP_RSV_FN  where RSINCD = ${RSINCD}) bb
+					union
+					  select COUNT(1) data from PAD_WRP_RSV_CNBSIN  where RSINCD = ${RSINCD} and (STDT is null or ACDT is null)
+					union 
+          			  select case when  data >0 then 1 else 0 end data from (select count(1) data from PAD_WRP_RSV_CNBSIN where not exists ( select * from PAD_WRP_RSV_CNBSIN t where t.RSINCD = ${RSINCD})) tt
+          			union
+					  select COUNT(1) data from PAD_RESERVOIR_SAFE_IDENTIFICATION  where RSINCD = ${RSINCD} and (DMSFTP is null)
+					union 
+          			  select case when  data >0 then 1 else 0 end data from (select count(1) data from PAD_RESERVOIR_SAFE_IDENTIFICATION where not exists ( select * from PAD_RESERVOIR_SAFE_IDENTIFICATION t where t.RSINCD = ${RSINCD})) tt
+				) cc
+		]]>
+	</sql>
+	
+	
+	<sql id="reservior.validateTap2">
+	<![CDATA[
+		select count(1) data from PAD_RESERVOIR_CHARACTERISTICS where RSINCD = ${RSINCD} and 
+			(TTSTCP is null or MFLSSCNWTLV is null or NRPLLV is null) 
+	]]>
+	
+	</sql>
+	
+	<sql id="reservior.validateTap3">
+	<![CDATA[
+		select SUM(cc.data) data
+				from (
+					select  COUNT(1) data from PAD_RESERVOIR_BLOCK_WATER_BUILD rbwb where  rbwb.RSINCD=${RSINCD} and
+						(
+							CREL is null or
+						 	MAXDMHG is null 
+						 	
+						)
+					 union 
+          			  select case when  data >0 then 1 else 0 end data from (select count(1) data from PAD_RESERVOIR_BLOCK_WATER_BUILD where not exists ( select * from PAD_RESERVOIR_BLOCK_WATER_BUILD t where t.RSINCD = ${RSINCD} and t.STTP='主坝') ) tt	
+				) cc
+	]]>
+	</sql>
+	
+	
+	<sql id="reservior.validateTap6">
+	<![CDATA[
+		
+		select SUM(cc.data) data
+			from (
+				select COUNT(1) data from PAD_RESERVOIR_DEPARTMENT_AND_PIC where RSINCD = ${RSINCD} and MNUNPR is null
+				union
+				select case when  data >0 then 1 else 0 end data from (select count(1) data from PAD_RESERVOIR_DEPARTMENT_AND_PIC where not exists ( select * from PAD_RESERVOIR_DEPARTMENT_AND_PIC t where t.RSINCD = ${RSINCD})) tt
+				
+				union
+			      select COUNT(1) data from PAD_RESERVOIR_RUN_MANAGE  where RSINCD = ${RSINCD} and (MNEMNM is null or HSMAXFLLV is null or HSLWWTLV is null)
+				union 
+          		  select case when  data >0 then 1 else 0 end data from (select count(1) data from PAD_RESERVOIR_RUN_MANAGE where not exists ( select * from PAD_RESERVOIR_RUN_MANAGE t where t.RSINCD = ${RSINCD})) tt
+          		  
+          		union
+			      select COUNT(1) data from PAD_WRP_RSV_ENBN  where RSINCD = ${RSINCD} and (AVANIRICTY is null or AVANSPICTY is null )
+				union 
+          		  select case when  data >0 then 1 else 0 end data from (select count(1) data from PAD_WRP_RSV_ENBN where not exists ( select * from PAD_WRP_RSV_ENBN t where t.RSINCD = ${RSINCD})) tt
+			) cc	
+	]]>
+	</sql>
+	
+	
+	
+	<sql id="reservior.validateTap8">
+	<![CDATA[
+		select SUM(cc.data) data
+			from (
+		
+				select COUNT(1) data from PAD_RESERVOIR_DEPARTMENT_AND_PIC where RSINCD = ${RSINCD} and 
+				(
+					CMDPNM is null or
+					MNUNNM is null or
+					MNUNCN is null or
+					
+					MNUNAD is null or
+					MNUNTEL is null or
+					MNUNMBL is null or
+					CMDPNM is null or
+					CMDPCN is null or
+					CMDPTEL is null 
+				)
+				
+				union
+				
+				select COUNT(1) data from PAD_RESERVOIR_BASIC prb,PAD_RESERVOIR_DEPARTMENT_AND_PIC prdap,PAD_RESERVOIR_AUDIT_ALL praa
+				where  RGAGNM is null and prdap.RSINCD>10000000
+				 and  (prb.PRSC='小（2）型' or prb.PRSC='小（1）型') 
+				 and prb.RSINCD=prdap.RSINCD
+				 and prdap.RSINCD=praa.RSINCD
+				 and prb.RSINCD = ${RSINCD}
+				
+				union 
+          		  select case when  data >0 then 1 else 0 end data from (select count(1) data from PAD_WRP_RSV_ENDR where not exists ( select * from PAD_WRP_RSV_ENDR t where t.RSINCD = ${RSINCD} and t.ENDRCD = 'EDR000' )) tt
+          		
+          		union 
+          		select case when  data >0 then 1 else 0 end data from (select count(1) data from PAD_WRP_RSV_ENDR where not exists ( select * from PAD_WRP_RSV_ENDR t where t.RSINCD = ${RSINCD} and t.ENDRCD = 'EDR100' )) tt
+				
+				union 
+          		select count(1) data from PAD_RESERVOIR_DEPARTMENT_AND_PIC aa,PAD_RESERVOIR_AUDIT_ALL bb where aa.RSINCD = bb.RSINCD and aa.RGAGNM is null and bb.RGST = '审核通过' and aa.RSINCD = ${RSINCD}
+				
+			 ) cc
+		
+	]]>
+	</sql>
+	
+	<sql id="reservior.findRGAGNMSign">
+	<![CDATA[
+		select count(1) data from PAD_RESERVOIR_DEPARTMENT_AND_PIC aa,PAD_RESERVOIR_AUDIT_ALL bb where aa.RSINCD = bb.RSINCD and aa.RGAGNM is null and bb.RGST = '审核通过' and aa.RSINCD = ${RSINCD}
+	]]>
+	</sql>
+	
+	
+	<sql id="reservior.findDrainBuildById">
+	<![CDATA[
+		select * from PAD_RESERVOIR_DRAIN_BUILD where STCD=${id}
+	]]>
+	</sql>
+	<sql id="reservior.findReviewDrainBuildById">
+	<![CDATA[
+		select * from PAD_RESERVOIR_DRAIN_BUILD_HISTORY where STCD=${stcd} AND VERSION = ${version}
+	]]>
+	</sql>
+	<sql id="reservior.findOtherInWaterBuild">
+	<![CDATA[
+		select * from PAD_RESERVOIR_OTHER_IN_WATER_BUILD where RSINCD=${id}
+	]]>
+	</sql>
+	<sql id="reservior.findMaxOtherInWaterBuild">
+	<![CDATA[
+		select * from PAD_RESERVOIR_OTHER_IN_WATER_BUILD where RSINCD=${id} and STCD = (select max(STCD) from PAD_RESERVOIR_OTHER_IN_WATER_BUILD where RSINCD=${id})
+	]]>
+	</sql>
+	<sql id="reservior.findReviewOtherInWaterBuild">
+	<![CDATA[
+		select * from PAD_RESERVOIR_OTHER_IN_WATER_BUILD_HISTORY where RSINCD=${rsincd} AND VERSION= ${version}
+	]]>
+	</sql>
+	<sql id="reservior.findOtherInBuildById">
+	<![CDATA[
+		select * from PAD_RESERVOIR_OTHER_IN_WATER_BUILD where STCD=${id}
+	]]>
+	</sql>
+	<sql id="reservior.findReviewOtherInBuildBySTCD">
+	<![CDATA[
+		select * from PAD_RESERVOIR_OTHER_IN_WATER_BUILD_HISTORY where STCD=${stcd} AND VERSION= ${version}
+	]]>
+	</sql>
+	<sql id="reservior.findOtherOutWaterBuild">
+	<![CDATA[
+		select * from PAD_RESERVOIR_OTHER_OUT_WATER_BUILD where RSINCD=${id}
+	]]>
+	</sql>
+	<sql id="reservior.findMaxOtherOutWaterBuild">
+	<![CDATA[
+		select * from PAD_RESERVOIR_OTHER_OUT_WATER_BUILD where RSINCD=${id} and STCD = (select max(STCD) from PAD_RESERVOIR_OTHER_OUT_WATER_BUILD where RSINCD=${id})
+	]]>
+	</sql>
+	<sql id="reservior.finReviewdOtherOutWaterBuild">
+	<![CDATA[
+		select * from PAD_RESERVOIR_OTHER_OUT_WATER_BUILD_HISTORY where RSINCD=${rsincd} AND VERSION= ${version}
+	]]>
+	</sql>
+	<sql id="reservior.findOtherOutBuildById">
+	<![CDATA[
+		select * from PAD_RESERVOIR_OTHER_OUT_WATER_BUILD where STCD=${id}
+	]]>
+	</sql>
+	<sql id="reservior.findReviewOtherOutBuildBySTCD">
+	<![CDATA[
+		select * from PAD_RESERVOIR_OTHER_OUT_WATER_BUILD_HISTORY where STCD=${stcd} AND VERSION= ${version}
+	]]>
+	</sql>
+	<sql id="reservior.findPowerBuild">
+	<![CDATA[
+		select * from PAD_RESERVOIR_POWER_BUILD where RSINCD=${id}
+	]]>
+	</sql>
+	<sql id="reservior.findMaxPowerBuild">
+	<![CDATA[
+		select * from PAD_RESERVOIR_POWER_BUILD where RSINCD=${id} and STCD = (select max(STCD) from PAD_RESERVOIR_POWER_BUILD where RSINCD=${id})
+	]]>
+	</sql>
+	<sql id="reservior.findReviewPowerBuild">
+	<![CDATA[
+		select * from PAD_RESERVOIR_POWER_BUILD_HISTORY where RSINCD=${rsincd} AND VERSION= ${version}
+	]]>
+	</sql>
+	<sql id="reservior.findPowerBuildById">
+	<![CDATA[
+		select * from PAD_RESERVOIR_POWER_BUILD where STCD=${id}
+	]]>
+	</sql>
+	<sql id="reservior.findReviewPowerBuildBySTCD">
+	<![CDATA[
+		select * from PAD_RESERVOIR_POWER_BUILD_HISTORY where STCD=${stcd} AND VERSION= ${version}
+	]]>
+	</sql>
+	<sql id="reservior.findNavigationBuild">
+	<![CDATA[
+		select * from PAD_RESERVOIR_NAVIGATION_BUILD where RSINCD=${id}
+	]]>
+	</sql>
+	<sql id="reservior.findMaxNavigationBuild">
+	<![CDATA[
+		select * from PAD_RESERVOIR_NAVIGATION_BUILD where RSINCD=${id} and STCD = (select max(STCD) from PAD_RESERVOIR_NAVIGATION_BUILD where RSINCD=${id})
+	]]>
+	</sql>
+	<sql id="reservior.findReviewNavigationBuild">
+	<![CDATA[
+		select * from PAD_RESERVOIR_NAVIGATION_BUILD_HISTORY where RSINCD=${rsincd} AND VERSION= ${version}
+	]]>
+	</sql>
+	<sql id="reservior.findNavigationBuildById">
+	<![CDATA[
+		select * from PAD_RESERVOIR_NAVIGATION_BUILD where STCD=${id}
+	]]>
+	</sql>
+	<sql id="reservior.findReviewNavigationBuildBySTCD">
+	<![CDATA[
+		select * from PAD_RESERVOIR_NAVIGATION_BUILD_HISTORY where STCD=${stcd} AND VERSION= ${version}
+	]]>
+	</sql>
+	<sql id="reservior.findFishBuild">
+	<![CDATA[
+		select * from PAD_RESERVOIR_FISH_BUILD where RSINCD=${id}
+	]]>
+	</sql>
+	<sql id="reservior.findMaxFishBuild">
+	<![CDATA[
+		select * from PAD_RESERVOIR_FISH_BUILD where RSINCD=${id} and STCD = (select max(STCD) from PAD_RESERVOIR_FISH_BUILD where RSINCD=${id})
+	]]>
+	</sql>
+	<sql id="reservior.findReviewFishBuild">
+	<![CDATA[
+		select * from PAD_RESERVOIR_FISH_BUILD_HISTORY where RSINCD=${rsincd} AND VERSION= ${version}
+	]]>
+	</sql>
+	<sql id="reservior.findFishBuildById">
+	<![CDATA[
+		select * from PAD_RESERVOIR_FISH_BUILD where STCD=${id}
+	]]>
+	</sql>
+	<sql id="reservior.findReviewFishBuildBySTCD">
+	<![CDATA[
+		select * from PAD_RESERVOIR_FISH_BUILD_HISTORY where STCD=${stcd} AND VERSION= ${version}
+	]]>
+	</sql>
+	<sql id="reservior.findRunManage">
+	<![CDATA[
+		select r.*,d.MNUNPR,d.CMDPNM,d.MNUNNM,d.RGAGNM from PAD_RESERVOIR_RUN_MANAGE r left join PAD_RESERVOIR_DEPARTMENT_AND_PIC d on r.RSINCD=d.RSINCD where r.RSINCD=${id}
+	]]>
+	</sql>
+	<sql id="reservior.updateMNUNPR">
+	<![CDATA[
+		update d set d.MNUNPR = '${MNUNPR}' from PAD_RESERVOIR_DEPARTMENT_AND_PIC d where d.RSINCD=${id}
+	]]>
+	</sql>
+	<sql id="reservior.findReviewRunManage">
+	<![CDATA[
+		select * from PAD_RESERVOIR_RUN_MANAGE_HISTORY where RSINCD=${rsincd} AND VERSION= ${version}
+	]]>
+	</sql>
+	<sql id="reservior.findRsvEnbn">
+	<![CDATA[
+		select * from PAD_WRP_RSV_ENBN where RSINCD=${id}
+	]]>
+	</sql>
+	<sql id="reservior.findReviewRsvEnbn">
+	<![CDATA[
+		select * from PAD_WRP_RSV_ENBN_HISTORY where RSINCD=${rsincd} AND VERSION= ${version}
+	]]>
+	</sql>
+	<sql id="reservior.findEnmnit">
+	<![CDATA[
+		select * from PAD_WRP_RSV_ENMNIT where RSINCD=${id}
+	]]>
+	</sql>
+	<sql id="reservior.findReviewEnmnit">
+	<![CDATA[
+		select * from PAD_WRP_RSV_ENMNIT_HISTORY where RSINCD=${rsincd} AND VERSION= ${version}
+	]]>
+	</sql>
+	<sql id="reservior.findHymnit">
+	<![CDATA[
+		select * from PAD_WRP_RSV_HYMNIT where RSINCD=${id}
+	]]>
+	</sql>
+	<sql id="reservior.findReviewHymnit">
+	<![CDATA[
+		select * from PAD_WRP_RSV_HYMNIT_HISTORY where RSINCD=${rsincd} AND VERSION= ${version}
+	]]>
+	</sql>
+	<sql id="reservior.deleteHymnit">
+	<![CDATA[
+		delete from PAD_WRP_RSV_HYMNIT where RSINCD=${id}
+	]]>
+	</sql>
+	<sql id="reservior.deleteEnmnit">
+	<![CDATA[
+		delete from PAD_WRP_RSV_ENMNIT where RSINCD=${id}
+	]]>
+	</sql>
+	<sql id="reservior.findDepartmentAndPic">
+	<![CDATA[
+		select * from PAD_RESERVOIR_DEPARTMENT_AND_PIC where RSINCD=${id}
+	]]>
+	</sql>
+	<sql id="reservior.findReviewDepartmentAndPic">
+	<![CDATA[
+		select * from PAD_RESERVOIR_DEPARTMENT_AND_PIC_HISTORY where RSINCD=${rsincd} AND VERSION= ${version}
+	]]>
+	</sql>
+	<sql id="reservior.findEndr">
+	<![CDATA[
+		select * from PAD_WRP_RSV_ENDR where RSINCD=${id}
+	]]>
+	</sql>
+	<sql id="reservior.findEndrByENDRCD">
+	<![CDATA[
+		select * from PAD_WRP_RSV_ENDR where RSINCD=${id} and ENDRCD = '${ENDRCD}'
+	]]>
+	</sql>
+	<sql id="reservior.updateEndrByENDRCD">
+	<![CDATA[
+		update PAD_WRP_RSV_ENDR set ENDR = '${ENDR}' where RSINCD=${id} and ENDRCD = '${ENDRCD}'
+	]]>
+	</sql>
+	<sql id="reservior.findEndr">
+	<![CDATA[
+		select * from PAD_WRP_RSV_ENDR where RSINCD=${id}
+	]]>
+	</sql>
+	<sql id="reservior.findReviewEndr">
+	<![CDATA[
+		select * from PAD_WRP_RSV_ENDR_HISTORY where RSINCD=${rsincd} AND VERSION= ${version}
+	]]>
+	</sql>
+	<sql id="reservior.findAuditAll">
+	<![CDATA[
+		select * from PAD_RESERVOIR_AUDIT_ALL where RSINCD=${id}
+	]]>
+	</sql>
+
+	<sql id="reservior.updateAuditAllPic">
+	<![CDATA[
+		update PAD_RESERVOIR_AUDIT_ALL set ARFRPC = '${ARFRPC}' where RSINCD=${id}
+	]]>
+	</sql>
+	<sql id="reservior.findAuditissuseandpic">
+		<![CDATA[
+		select ISISSUE,IMGPATH from PAD_RESERVOIR_BASIC where RSINCD=${id}
+	]]>
+	</sql>
+
+	<sql id="reservior.findReviewAuditAll">
+	<![CDATA[
+		select * from PAD_RESERVOIR_AUDIT_ALL_HISTORY where RSINCD=${rsincd} AND VERSION= ${version}
+	]]>
+	</sql>
+	<sql id="reservior.findAuditAllList">
+	<![CDATA[
+		select basic.RSINCD,basic.RSNM,basic.PRSC,basic.PRST,dept.MNUNNM,basic.RSCD,basic.CNTY from PAD_RESERVOIR_BASIC basic 
+		left join PAD_RESERVOIR_DEPARTMENT_AND_PIC  dept on dept.RSINCD = basic.RSINCD where 
+		basic.RSINCD in(select RSINCD from PAD_RESERVOIR_AUDIT_ALL where
+			#if (${EXAMINED})
+				RGST = '审批通过'
+			#else
+				RGST = '审核通过'
+			#end
+
+		)
+		 and (basic.isdel is null or basic.isdel = 0)
+         #if (${RSNM}) 
+		 and RSNM like '%${RSNM}%'
+		 #end 
+		 #if (${CNTY}) 
+		 and CNTY_CD like '%${CNTY}%' 
+		 #end
+		 #if (${PRSC}) 
+		 and PRSC like '%${PRSC}%' 
+		 #end
+        and ${priv.getAudit('basic')}
+        and ${priv.get('basic', 'wrcd', 'WR', '2,3')} 
+        order by basic.RSINCD desc
+	]]>
+	</sql>
+	
+	<sql id="reservior.findExamine">
+	<![CDATA[
+		select basic.RSINCD,basic.RSNM,basic.PRSC,basic.PRST,dept.MNUNNM,basic.CNTY from PAD_RESERVOIR_BASIC basic 
+		left join PAD_RESERVOIR_DEPARTMENT_AND_PIC  dept on dept.RSINCD = basic.RSINCD where 
+		basic.RSINCD in(select RSINCD from PAD_RESERVOIR_AUDIT_ALL where
+		#if (${EXAMINED})
+			RGST = '审批通过'
+		#else
+			RGST = '已申报'
+		#end
+
+		)
+		and (basic.isdel is null or basic.isdel = 0)
+         #if (${RSNM}) 
+		 and RSNM like '%${RSNM}%'
+		 #end 
+		 #if (${CNTY}) 
+		 and CNTY_CD like '%${CNTY}%' 
+		 #end
+		 #if (${PRSC}) 
+		 and PRSC like '%${PRSC}%' 
+		 #end
+        and ${priv.get('basic', 'wrcd', 'WR', '2,3')} 
+        order by basic.RSINCD desc
+	]]>
+	</sql>
+	
+	<!-- 发证列表 -->
+	<sql id="reservior.findIssueList">
+	<![CDATA[
+		select basic.RSINCD,basic.RSNM,basic.PRSC,basic.PRST,dept.MNUNNM,basic.CNTY,basic.ISISSUE from PAD_RESERVOIR_BASIC basic 
+		left join PAD_RESERVOIR_DEPARTMENT_AND_PIC  dept on dept.RSINCD = basic.RSINCD where   
+		basic.RSINCD in(select RSINCD from PAD_RESERVOIR_AUDIT_ALL where RGST = '审批通过' or RGST = '已发证')
+		and (basic.isdel is null or basic.isdel = 0)
+        #if (${RSNM}) 
+		 and basic.RSNM like '%${RSNM}%'
+		 #end 
+		 #if (${CNTY}) 
+		 and basic.CNTY_CD like '%${CNTY}%' 
+		 #end
+		 #if (${PRSC}) 
+		 and basic.PRSC like '%${PRSC}%' 
+		 #end
+		 #if (${ISISSUE}=='1') 
+		 and basic.ISISSUE = '1'
+		 #elseif (${ISISSUE}=='0') 
+		 and basic.ISISSUE is null 
+		 #end
+        and ${priv.get('basic', 'wrcd', 'WR', '2,3')} 
+		  order by basic.RSINCD desc
+	]]>
+	</sql>
+	<sql id="reservior.updateBasic">
+	<![CDATA[
+		update PAD_RESERVOIR_BASIC set ISISSUE = ${ISISSUE},IMGPATH='${IMGPATH}' where RSINCD=${id}
+	]]>
+	</sql>
+	<sql id="reservior.updateBasicBlockWater">
+	<![CDATA[
+		update PAD_RESERVOIR_BASIC set BSSSIN = ${helper.sql(${BSSSIN})},EQMTPKACLT=${helper.sql(${EQMTPKACLT})},FREQIN=${helper.sql(${FREQIN})},SSRSSPCHPR=${helper.sql(${SSRSSPCHPR})} where RSINCD=${id}
+	]]>
+	</sql>
+	<sql id="reservior.updateBasicDrainBuild">
+	<![CDATA[
+		update PAD_RESERVOIR_BASIC set DWRVSFDS = '${DWRVSFDS}',OTSTTP='${OTSTTP}' where RSINCD=${id}
+	]]>
+	</sql>
+	<sql id="reservior.findReviewList">
+	<![CDATA[
+		select basic.RSINCD,basic.RSNM,basic.PRSC,basic.PRST,dept.MNUNNM,basic.CNTY from PAD_RESERVOIR_BASIC basic 
+		left join PAD_RESERVOIR_DEPARTMENT_AND_PIC  dept on dept.RSINCD = basic.RSINCD 
+		where basic.MDNUM is not null and basic.RSINCD in (select RSINCD from PAD_RESERVOIR_BASIC_HISTORY) 
+        #if (${RSNM}) 
+		 and RSNM like '%${RSNM}%'
+		 #end 
+		 #if (${CNTY}) 
+		 and CNTY_CD like '%${CNTY}%' 
+		 #end
+		 #if (${PRSC}) 
+		 and PRSC like '%${PRSC}%' 
+		 #end
+        and ${priv.get('basic', 'wrcd', 'WR', '2,3')} order by basic.RSINCD desc
+	]]>
+	</sql>
+	<sql id="reservior.saveHistory">
+	<![CDATA[
+		update PAD_RESERVOIR_BASIC set VERSION = ${version} where RSINCD = ${id};
+		insert into PAD_RESERVOIR_BASIC_HISTORY select * from PAD_RESERVOIR_BASIC where RSINCD = ${id};
+
+		update PAD_RESERVOIR_CHARACTERISTICS set VERSION = ${version} where RSINCD = ${id};
+		insert into PAD_RESERVOIR_CHARACTERISTICS_HISTORY select * from PAD_RESERVOIR_CHARACTERISTICS where RSINCD = ${id};
+		
+		update PAD_RESERVOIR_BLOCK_WATER_BUILD set VERSION = ${version} where RSINCD = ${id};
+		insert into PAD_RESERVOIR_BLOCK_WATER_BUILD_HISTORY select * from PAD_RESERVOIR_BLOCK_WATER_BUILD where RSINCD = ${id};
+		
+		update PAD_RESERVOIR_DRAIN_BUILD set VERSION = ${version} where RSINCD = ${id};
+		insert into PAD_RESERVOIR_DRAIN_BUILD_HISTORY select * from PAD_RESERVOIR_DRAIN_BUILD where RSINCD = ${id};
+		
+		update PAD_RESERVOIR_OTHER_IN_WATER_BUILD set VERSION = ${version} where RSINCD = ${id};
+		insert into PAD_RESERVOIR_OTHER_IN_WATER_BUILD_HISTORY select * from PAD_RESERVOIR_OTHER_IN_WATER_BUILD where RSINCD = ${id};
+		
+		update PAD_RESERVOIR_OTHER_OUT_WATER_BUILD set VERSION = ${version} where RSINCD = ${id};
+		insert into PAD_RESERVOIR_OTHER_OUT_WATER_BUILD_HISTORY select * from PAD_RESERVOIR_OTHER_OUT_WATER_BUILD where RSINCD = ${id};
+		
+		update PAD_RESERVOIR_FISH_BUILD set VERSION = ${version} where RSINCD = ${id};
+		insert into PAD_RESERVOIR_FISH_BUILD_HISTORY select * from PAD_RESERVOIR_FISH_BUILD where RSINCD = ${id};
+		
+		update PAD_RESERVOIR_NAVIGATION_BUILD set VERSION = ${version} where RSINCD = ${id};
+		insert into PAD_RESERVOIR_NAVIGATION_BUILD_HISTORY select * from PAD_RESERVOIR_NAVIGATION_BUILD where RSINCD = ${id};
+		
+		update PAD_RESERVOIR_POWER_BUILD set VERSION = ${version} where RSINCD = ${id};
+		insert into PAD_RESERVOIR_POWER_BUILD_HISTORY select * from PAD_RESERVOIR_POWER_BUILD where RSINCD = ${id};
+		
+		update PAD_RESERVOIR_RUN_MANAGE set VERSION = ${version} where RSINCD = ${id};
+		insert into PAD_RESERVOIR_RUN_MANAGE_HISTORY select * from PAD_RESERVOIR_RUN_MANAGE where RSINCD = ${id};
+		
+		update PAD_RESERVOIR_SAFE_IDENTIFICATION set VERSION = ${version} where RSINCD = ${id};
+		insert into PAD_RESERVOIR_SAFE_IDENTIFICATION_HISTORY select * from PAD_RESERVOIR_SAFE_IDENTIFICATION where RSINCD = ${id};
+		
+		update PAD_RESERVOIR_DEPARTMENT_AND_PIC set VERSION = ${version} where RSINCD = ${id};
+		insert into PAD_RESERVOIR_DEPARTMENT_AND_PIC_HISTORY select * from PAD_RESERVOIR_DEPARTMENT_AND_PIC where RSINCD = ${id};
+		
+		update PAD_WRP_RSV_ENDR set VERSION = ${version} where RSINCD = ${id};
+		insert into PAD_WRP_RSV_ENDR_HISTORY select * from PAD_WRP_RSV_ENDR where RSINCD = ${id};
+		
+		update PAD_RESERVOIR_AUDIT_ALL set VERSION = ${version} where RSINCD = ${id};
+		insert into PAD_RESERVOIR_AUDIT_ALL_HISTORY select * from PAD_RESERVOIR_AUDIT_ALL where RSINCD = ${id};
+		update PAD_RESERVOIR_AUDIT_ALL set  RGST='未申报'  where RSINCD = ${id};
+		
+		update PAD_WRP_RSV_HYMNIT set VERSION = ${version} where RSINCD = ${id};
+		insert into PAD_WRP_RSV_HYMNIT_HISTORY select * from PAD_WRP_RSV_HYMNIT where RSINCD = ${id};
+		
+		update PAD_WRP_RSV_ENMNIT set VERSION = ${version} where RSINCD = ${id};
+		insert into PAD_WRP_RSV_ENMNIT_HISTORY select * from PAD_WRP_RSV_ENMNIT where RSINCD = ${id};
+		
+		update PAD_WRP_RSV_CNBSIN set VERSION = ${version} where RSINCD = ${id};
+		insert into PAD_WRP_RSV_CNBSIN_HISTORY select * from PAD_WRP_RSV_CNBSIN where RSINCD = ${id};
+		
+		update PAD_WRP_RSV_ENBN set VERSION = ${version} where RSINCD = ${id};
+		insert into PAD_WRP_RSV_ENBN_HISTORY select * from PAD_WRP_RSV_ENBN where RSINCD = ${id};
+		
+		update PAD_WRP_RSV_FN set VERSION = ${version} where RSINCD = ${id};
+		insert into PAD_WRP_RSV_FN_HISTORY select * from PAD_WRP_RSV_FN where RSINCD = ${id};
+		
+	]]>
+	</sql>
+	<sql id="reservior.findHistoryCount">
+	<![CDATA[
+		select count(*) as count from PAD_RESERVOIR_BASIC_HISTORY where RSINCD = ${id}
+	]]>
+	</sql>
+	
+	<sql id="reservior.findReviewBasicHistory"> 
+	<![CDATA[
+		select basic.RSINCD,basic.RSNM,basic.PRSC,basic.PRST,dept.MNUNNM,basic.CNTY,a.RGNM,CONVERT(varchar(100), basic.LASTMODIFIEDTIME, 20) LASTMODIFIEDTIME_CORRECT,basic.VERSION from PAD_RESERVOIR_BASIC_HISTORY basic 
+		left join PAD_RESERVOIR_DEPARTMENT_AND_PIC  dept on dept.RSINCD = basic.RSINCD and basic.VERSION = dept.VERSION
+		left join PAD_RESERVOIR_AUDIT_ALL_HISTORY a on a.RSINCD = basic.RSINCD and basic.VERSION = a.VERSION
+		where basic.RSINCD = ${rsincd} order by basic.VERSION desc
+	]]>
+	</sql>
+	
+	<!-- 删除水库信息 -->
+	<sql id="reservior.deleteReservior">
+	<![CDATA[
+		delete from PAD_RESERVOIR_BASIC where RSINCD = ${id};
+		delete from PAD_RESERVOIR_CHARACTERISTICS where RSINCD = ${id};
+		delete from PAD_RESERVOIR_BLOCK_WATER_BUILD where RSINCD = ${id};
+		delete from PAD_RESERVOIR_DRAIN_BUILD where RSINCD = ${id};
+		delete from PAD_RESERVOIR_OTHER_IN_WATER_BUILD where RSINCD = ${id};
+		delete from PAD_RESERVOIR_OTHER_OUT_WATER_BUILD where RSINCD = ${id};
+		delete from PAD_RESERVOIR_FISH_BUILD where RSINCD = ${id};
+		delete from PAD_RESERVOIR_NAVIGATION_BUILD where RSINCD = ${id};
+		delete from PAD_RESERVOIR_POWER_BUILD where RSINCD = ${id};
+		delete from PAD_RESERVOIR_RUN_MANAGE where RSINCD = ${id};
+		delete from PAD_RESERVOIR_SAFE_IDENTIFICATION where RSINCD = ${id};
+		delete from PAD_RESERVOIR_DEPARTMENT_AND_PIC where RSINCD = ${id};
+		delete from PAD_WRP_RSV_ENDR where RSINCD = ${id};
+		delete from PAD_WRP_RSV_HYMNIT where RSINCD = ${id};
+		delete from PAD_WRP_RSV_ENMNIT where RSINCD = ${id};
+		delete from PAD_WRP_RSV_CNBSIN where RSINCD = ${id};
+		delete from PAD_WRP_RSV_ENBN where RSINCD = ${id};
+		delete from PAD_WRP_RSV_FN where RSINCD = ${id};
+		delete from PAD_RESERVOIR_AUDIT_ALL where RSINCD = ${id};
+	]]>
+	</sql>
+	<!-- 导入xml -->
+	<sql id="reservior.import">
+	<![CDATA[
+		${sql}
+	]]>
+	</sql>
+	<!-- 注册登记-》统计报表 蒋健 -->
+	<sql id="reservior.getAllTypeReservoir">
+	<![CDATA[
+		select PRSC,count(*) as PRSCNUM from PAD_RESERVOIR_BASIC  where CNTY_CD like '%${CNTY}%' 
+		and (isdel is null or isdel = 0)
+		and RSINCD in (select aa.RSINCD from PAD_RESERVOIR_AUDIT_ALL aa where aa.RGST = '发证' or aa.RGST = '审批通过')
+        and ${priv.get('', 'wrcd', 'WR', '2,3')}
+        GROUP by PRSC
+	]]>
+	</sql>
+
+	<sql id="reservior.getAllTypeReservoirWithCNTY">
+	<![CDATA[
+		select PRSC,count(*) as PRSCNUM from PAD_RESERVOIR_BASIC  where  CNTY_CD like '%${CNTY}%' 
+		and (isdel is null or isdel = 0)
+		and RSINCD in (select aa.RSINCD from PAD_RESERVOIR_AUDIT_ALL aa where aa.RGST = '发证' or aa.RGST = '审批通过')
+        and ${priv.get('', 'wrcd', 'WR', '2,3')}
+        GROUP by PRSC
+	]]>
+	</sql>
+
+	<!-- 注册登记-》统计报表 蒋健 -->
+	<sql id="reservior.getTypeList">
+	<![CDATA[
+		select * from PAD_RESERVOIR_BASIC where PRSC = '${PRSC}' and CNTY like '%${CNTY}%'
+		and (isdel is null or isdel = 0)
+		and RSINCD in (select aa.RSINCD from PAD_RESERVOIR_AUDIT_ALL aa where aa.RGST = '发证' or aa.RGST = '审批通过')
+        and ${priv.get('', 'wrcd', 'WR', '2,3')}
+	]]>
+	</sql>
+
+	<sql id="reservior.getTypeListWithCNTY">
+	<![CDATA[
+		select RSINCD,RSNM,PRSC,PRST,CNTY from PAD_RESERVOIR_BASIC where PRSC = '${PRSC}' and CNTY like (select ITNM from DD_ADD_DIST where CD='${CNTY}')
+		and RSINCD in (select RSINCD  from PAD_RESERVOIR_AUDIT_ALL where MNUNHDSG is not null and MNUNHDSG !='') 
+		and RSINCD in (select RSINCD from PAD_RESERVOIR_BLOCK_WATER_BUILD where STTP='主坝') 
+		and MDNUM is not null  
+		and (isdel is null or isdel = 0)
+		and RSINCD in (select aa.RSINCD from PAD_RESERVOIR_AUDIT_ALL aa where aa.RGST = '发证' or aa.RGST = '审批通过')
+		 and ${priv.get('', 'wrcd', 'WR', '2,3')}
+	]]>
+	</sql>
+
+	<!-- 注册信息查询 -->
+	<sql id="reservior.getRegistedList">
+	<![CDATA[
+ select r.RSINCD,r.RSNM,r.CNTY,r.PRSC,r.RSCD,
+ (select top 1 bb.DMTP from PAD_RESERVOIR_BLOCK_WATER_BUILD bb where bb.MAXDMHG = (select max(cc.MAXDMHG) from PAD_RESERVOIR_BLOCK_WATER_BUILD cc where cc.STTP = '主坝' and cc.rsincd = bb.rsincd) and bb.STTP='主坝' and bb.rsincd = r.rsincd ) DMTP,
+ (select top 1 bb.MAXDMHG from PAD_RESERVOIR_BLOCK_WATER_BUILD bb where bb.MAXDMHG = (select max(cc.MAXDMHG) from PAD_RESERVOIR_BLOCK_WATER_BUILD cc where cc.STTP = '主坝' and cc.rsincd = bb.rsincd) and bb.STTP='主坝' and bb.rsincd = r.rsincd ) MAXDMHG,
+ (select top 1 cc.TTSTCP from PAD_RESERVOIR_CHARACTERISTICS cc where cc.RSINCD = r.RSINCD) TTSTCP,
+ (select top 1 dd.MNUNCN from PAD_RESERVOIR_DEPARTMENT_AND_PIC dd where dd.RSINCD = r.RSINCD) MNUNCN,
+ (select top 1 dd.MNUNMBL from PAD_RESERVOIR_DEPARTMENT_AND_PIC dd where dd.RSINCD = r.RSINCD) MNUNMBL,
+ (select top 1 aa.RGNM from PAD_RESERVOIR_AUDIT_ALL aa where aa.RSINCD = r.RSINCD) RGNM
+  from PAD_RESERVOIR_BASIC r  
+   where   r.RSINCD in (select aa.RSINCD from PAD_RESERVOIR_AUDIT_ALL aa where aa.RGST = '发证' or aa.RGST = '审批通过')
+   and (r.isdel is null or r.isdel = 0)
+ ORDER BY RSCD DESC
+	]]>
+	</sql>
+
+<!-- 获取导出水库列表 -->
+	<sql id="reservior.getExportReservoirList">
+	<![CDATA[
+		select RSINCD,RSNM, CNTY from PAD_RESERVOIR_BASIC where 1=1 
+        #if(${PRSC}) 
+        and PRSC like '%${PRSC}%' 
+        #end
+        #if(${CNTY})
+        and CNTY like '%${CNTY}%' 
+        #end
+        and ADNUM is not null order by CNTY
+	]]>
+	</sql>
+	<!-- 导入水库数据结束以后修改基本信息表的区县代码字段值 -->
+	<sql id="reservior.updateCntyCD">
+	<![CDATA[
+		update PAD_RESERVOIR_BASIC set CNTY_CD = d.CD from DD_ADD_DIST d where SUBSTRING(CNTY, 0, 3) like SUBSTRING(d.ITNM, 0, 3)+'%' and CNTY_CD is null;
+		update PAD_RESERVOIR_BASIC set RSTP_ID = d.CD from DD_RSTP d where RSTP = d.ITNM and RSTP_ID is null;
+		update PAD_RESERVOIR_BASIC set RSKD_ID = d.CD from DD_RSKD d where RSKD = d.ITNM and RSKD_ID is null;
+		update PAD_RESERVOIR_BASIC set PRSC_ID = d.CD from DD_PRSC d where PRSC = d.ITNM and PRSC_ID is null;
+		update PAD_RESERVOIR_BASIC set PRGR_ID = d.CD from DD_PRGR d where PRGR = d.ITNM and PRGR_ID is null;
+		update PAD_RESERVOIR_BASIC set DTPL_ID = d.CD from DD_DTPL d where DTPL = d.ITNM and DTPL_ID is null;
+		update PAD_RESERVOIR_BASIC set PRV_ID = d.CD from DD_ADD_PRV d where PRV = d.ITNM and PRV_ID is null;
+		update PAD_RESERVOIR_BASIC set CITY_ID = d.CD from DD_ADD_CITY d where CITY = d.ITNM and d.cd like '500%' and CITY_ID is null;
+		update PAD_RESERVOIR_BASIC set CTLO_ID = d.CD from DD_CTLO d where CTLO = d.ITNM and CTLO_ID is null;
+		update PAD_RESERVOIR_BASIC set CTLT_ID = d.CD from DD_CTLT d where CTLT = d.ITNM and CTLT_ID is null;
+		update PAD_RESERVOIR_SAFE_IDENTIFICATION set DMSFTP_ID = d.CD from DD_SAFETP d where DMSFTP = d.ITNM and DMSFTP_ID is null;
+	]]>
+	</sql>
+    
+    <!-- 注册登记日志管理 -->
+    <sql id="log.reservoir.insert">
+<![CDATA[
+#foreach ($pcr in ${bcr.propertyComparisonResults})
+    insert into smd_log_reservoir (rsincd, bean, bean_readable_text, property, property_readable_text, old_value, new_value, last_modified_time, operation, user_id, readable)
+    values (${rsincd}, ${helper.sql(${bcr.name})}, ${helper.sql(${bcr.readableText})}, ${helper.sql(${pcr.name})}, ${helper.sql(${pcr.readableText})},
+            ${helper.sql(${pcr.oldValue})}, ${helper.sql(${pcr.newValue})}, '${tm}', '${operation}', ${user.id}, '${pcr.getReadable()}');
+#end
+]]>
+    </sql>
+    
+   	<sql id="reservior.doCheckData">
+		<![CDATA[
+			SELECT RSINCD FROM PAD_RESERVOIR_BASIC WHERE RSINCD = ${RSINCD}
+		]]>
+	</sql>
+
+
+	<sql id="reservior.validateForxml">
+	    <![CDATA[
+
+	UPDATE audit SET audit.RGST='未申报' FROM PAD_RESERVOIR_AUDIT_ALL audit ,PAD_RESERVOIR_BASIC basic where audit.RSINCD = basic.RSINCD 
+		and basic.PRSC='小（2）型'
+		and (
+			basic.RSNM is null or 
+			basic.PRSC is null or
+			basic.PRV is null or
+			basic.CITY is null or
+			basic.CNTY is null or
+			basic.RSOV is null or
+			basic.LNG is null or
+			basic.LAT is null or
+			basic.RV is null or
+			basic.CTLT is null or
+			basic.CTLO is null or
+			basic.FLTM is null or
+			audit.RSINCD in (
+				select tt.RSINCD from PAD_WRP_RSV_CNBSIN tt where tt.RSINCD = audit.RSINCD and (tt.STDT is null or tt.ACDT is null)
+				union
+				select tt.RSINCD from PAD_RESERVOIR_SAFE_IDENTIFICATION tt where tt.RSINCD = audit.RSINCD and (tt.DMSFTP is null)
+				union
+				select tt.RSINCD from PAD_RESERVOIR_CHARACTERISTICS tt where tt.RSINCD = audit.RSINCD and (tt.TTSTCP is null or tt.MFLSSCNWTLV is null or tt.NRPLLV is null)
+				union
+				select tt.RSINCD from PAD_RESERVOIR_BLOCK_WATER_BUILD tt where tt.RSINCD = audit.RSINCD and (tt.CREL is null or tt.MAXDMHG is null )
+				union
+				select tt.RSINCD from PAD_RESERVOIR_DEPARTMENT_AND_PIC tt where tt.RSINCD = audit.RSINCD and (tt.MNUNPR is null
+				      or tt.CMDPNM is null
+							or tt.MNUNNM is null
+							or tt.MNUNCN is null 
+							or tt.MNUNAD is null 
+							or tt.MNUNTEL is null 
+							or tt.MNUNMBL is null 
+							or tt.CMDPNM is null 
+							or tt.CMDPCN is null 
+							or tt.CMDPTEL is null  
+							or tt.RGAGNM is null
+						)
+				union
+				select tt.RSINCD from PAD_RESERVOIR_RUN_MANAGE tt where tt.RSINCD = audit.RSINCD and (tt.MNEMNM is null or tt.HSMAXFLLV is null or tt.HSLWWTLV is null)
+				union
+				select tt.RSINCD from PAD_WRP_RSV_ENBN tt where tt.RSINCD = audit.RSINCD and (tt.AVANIRICTY is null or tt.AVANSPICTY is null )
+				
+		  ) 
+		  or not exists (select tt.RSINCD from PAD_WRP_RSV_FN tt where tt.RSINCD = audit.RSINCD )
+		  or not exists (select tt.RSINCD from PAD_WRP_RSV_CNBSIN tt where tt.RSINCD = audit.RSINCD  )
+		  or not exists (select tt.RSINCD from PAD_RESERVOIR_SAFE_IDENTIFICATION tt where  tt.RSINCD = audit.RSINCD )
+		  or not exists (select tt.RSINCD from PAD_RESERVOIR_BLOCK_WATER_BUILD tt where  tt.RSINCD = audit.RSINCD and tt.STTP='主坝'  )
+		  or not exists (select tt.RSINCD from PAD_RESERVOIR_DEPARTMENT_AND_PIC tt where  tt.RSINCD = audit.RSINCD )
+		  or not exists (select tt.RSINCD from PAD_RESERVOIR_RUN_MANAGE tt where  tt.RSINCD = audit.RSINCD )
+		  or not exists (select tt.RSINCD from PAD_WRP_RSV_ENBN tt where  tt.RSINCD = audit.RSINCD )
+		  or not exists (select tt.RSINCD from PAD_WRP_RSV_ENDR tt where  tt.RSINCD = audit.RSINCD and  tt.ENDRCD = 'EDR000' )
+		  or not exists (select tt.RSINCD from PAD_WRP_RSV_ENDR tt where  tt.RSINCD = audit.RSINCD and  tt.ENDRCD = 'EDR100' )
+			
+		)
+
+
+	    ]]>
+  	</sql>
+
+	<!--排序的规则首先是根据单位,其次单位里指定的序号(临时方法,后期可以修改),最后时职位或者为最末-->
+     <sql id="reservior.initOrganization">
+	<![CDATA[
+		SELECT  SO.ID,SO.NAME,SE.ID EMPLOYEEID,SE.NAME EMPLOYEENAME,DP.CD,DP.ITNM,SO.SORTID,SE.MOBILE  FROM  SMD_ORGANIZATION SO
+		LEFT JOIN SMD_EMPLOYEE SE ON SO.ID = SE.ORG_ID AND SE.STATUS='A'
+		LEFT JOIN DD_POSITION DP ON  SE.POS_CD = DP.CD
+		WHERE SO.ID <> 1
+		and EXISTS (SELECT 1  from SMD_USER SUSER WHERE SUSER.emp_id = SE.ID)
+		order by SO.SORTID ,SE.SORTNUM, case when DP.ORDERNO is null then 999999 else DP.ORDERNO end
+	]]>
+	</sql>
+    
+    
+   	<sql id="reservior.insertFileOptin">
+	<![CDATA[
+		INSERT INTO PAD_RESERVOIR_FILE_OPTION 
+		(id,title,remark,filePath,fileName,option_date,opn_pson_id,opn_pson_name,source_file_Name,file_type)
+		VALUES 
+		(${id},'${title}','${remark}','${filePath}','${fileName}','${optionDate}','${employeeId}','${employeeName}','${disFileName}','${fileType}')
+	]]>
+	</sql>
+
+	<sql id="reservior.optionTargetMSG">
+	<![CDATA[
+		SELECT SEE.ID,SEE.NAME,SO.COUNTY_ID,SO.COUNTY_NAME,SO.ID ORGNO,SO.NAME ORGNAME,DP.ITNM,DP.CD 
+		FROM  SMD_EMPLOYEE SEE
+		LEFT JOIN SMD_ORGANIZATION SO ON SEE.ORG_ID = SO.ID
+		LEFT JOIN DD_POSITION DP ON DP.CD = SEE.POS_CD
+		WHERE SEE.ID in (${employeeIds})
+	]]>
+	</sql>
+
+	<sql id="reservior.insertFileOptinTarget">
+	<![CDATA[
+		
+		INSERT INTO PAD_RESERVOIR_FILE_OPTION_TARGET
+		(id,user_id,user_name,xzqy_code,xzqy_name,orgNo,orgName,position_name,position_id,option_id)
+		VALUES
+		(${id},'${employeeId}','${employeeName}','${xzqhCode}','${xzqhName}','${orgNo}','${orgName}',${helper.sql(${positionName})},${helper.sql(${positionCD})},${optionId})
+	]]>
+	</sql>
+	
+	<sql id="reservior.file.sended">
+	<![CDATA[
+		SELECT PRFO.TITLE,PRFO.ID,CONVERT(varchar(100),PRFO.option_date, 20)  SENDDATE, source_file_name,
+		PRFO.FILEPATH,PRFO.REMARK,
+		(SELECT COUNT(1) FROM PAD_RESERVOIR_FILE_OPTION_TARGET PRFOT WHERE PRFO.ID = PRFOT.OPTION_ID) SENDTOTAL,
+		(SELECT COUNT(1) FROM PAD_RESERVOIR_FILE_OPTION_TARGET PRFOT WHERE PRFO.ID = PRFOT.OPTION_ID AND PRFOT.STATUS IS NULL) UNREADTOTAL,
+        (SELECT COUNT(1) FROM PAD_RESERVOIR_FILE_OPTION_TARGET PRFOT WHERE PRFO.ID = PRFOT.OPTION_ID AND PRFOT.STATUS IS NOT NULL) READTOTAL
+		FROM PAD_RESERVOIR_FILE_OPTION PRFO
+		WHERE PRFO.OPN_PSON_ID = '${employeeId}'
+		ORDER BY SENDDATE DESC
+	]]>
+	</sql>
+	
+	<sql id="reservior.file.received">
+	<![CDATA[
+		
+		SELECT T1.OPTION_ID ID,T2.TITLE,T5.NAME ORGNAME,T4.NAME EMPLOYEENAME,CONVERT(varchar(100),T2.OPTION_DATE, 20) SENDDATE,
+		T2.REMARK,T2.FILEPATH, source_file_name, 
+		(CASE WHEN T1.STATUS IS NULL  THEN '未接收' ELSE '已接收' END) STATUS
+		FROM PAD_RESERVOIR_FILE_OPTION_TARGET T1
+		LEFT JOIN PAD_RESERVOIR_FILE_OPTION T2 ON T1.OPTION_ID = T2.ID 
+		LEFT JOIN SMD_EMPLOYEE T4 ON T2.OPN_PSON_ID = T4.ID
+		LEFT JOIN SMD_ORGANIZATION T5 ON T4.ORG_ID = T5.ID
+		WHERE T1.USER_ID = '${employeeId}'
+		ORDER BY STATUS ASC,SENDDATE DESC
+		
+	]]>
+	</sql>
+	
+	<sql id="reservior.file.received.total">
+	<![CDATA[
+		
+		SELECT count(1) total FROM PAD_RESERVOIR_FILE_OPTION_TARGET T1
+		LEFT JOIN PAD_RESERVOIR_FILE_OPTION T2 ON T1.OPTION_ID = T2.ID 
+		LEFT JOIN SMD_EMPLOYEE T4 ON T2.OPN_PSON_ID = T4.ID
+		LEFT JOIN SMD_ORGANIZATION T5 ON T4.ORG_ID = T5.ID
+		WHERE T1.USER_ID = '${employeeId}'
+		AND T1.STATUS IS NULL
+		
+	]]>
+	</sql>
+	
+	<sql id="reservior.file.doContact">
+	<![CDATA[
+		SELECT * from SMD_EMPLOYEE WHERE CCSTATUS = 1
+	]]>
+	</sql>
+
+	<sql id="reservior.file.checkedSignStatus">
+		<![CDATA[
+			SELECT * from PAD_RESERVOIR_FILE_OPTION rfo
+			LEFT JOIN PAD_RESERVOIR_FILE_OPTION_TARGET rfot ON rfo.id = rfot.option_id
+			WHERE rfot.option_id = ${optionId}  AND rfot.user_id = '${employeeId}'
+		]]>
+	</sql>
+
+	<sql id="reservior.file.updateSignStatus">
+	<![CDATA[
+		UPDATE PAD_RESERVOIR_FILE_OPTION_TARGET SET
+
+		#if(${status})
+			STATUS = ${status} ,
+		#end
+
+		RECEIVED_DATE = '${signDate}'
+
+		#if(${downItems})
+			, DOWNITEMS = '${downItems}'
+		#end
+
+		WHERE USER_ID = '${employeeId}' AND OPTION_ID = ${optionId}
+	]]>
+	</sql>
+	
+	
+	<sql id="reservior.file.download.path">
+	<![CDATA[
+		SELECT TITLE,FILEPATH,FILENAME,FILE_TYPE FILETYPE,source_file_Name DISNAME FROM PAD_RESERVOIR_FILE_OPTION WHERE ID = ${optionId}
+	]]>
+	</sql>
+	
+	<sql id="reservior.file.accepted.detail">
+	<![CDATA[
+		
+		SELECT T1.ID,T2.USER_ID USERID,T2.USER_NAME USERNAME,T2.ORGNAME,T1.TITLE,
+		DP.ITNM,SEE.MOBILE,CONVERT(varchar(100),T2.URGEDATE, 20) URGEDATE,
+		T1.REMARK,
+		(CASE WHEN T2.STATUS IS NULL  THEN '未接收' ELSE '已接收' END) STATUS
+		FROM PAD_RESERVOIR_FILE_OPTION T1
+		LEFT JOIN PAD_RESERVOIR_FILE_OPTION_TARGET T2 ON T1.ID = T2.OPTION_ID
+		LEFT JOIN SMD_EMPLOYEE SEE ON T2.USER_ID = SEE.ID
+		LEFT JOIN  DD_POSITION DP ON SEE.POS_CD = DP.CD
+		WHERE T2.STATUS IS NULL AND T1.ID = ${optionId}
+	]]>
+	</sql>
+    
+    <sql id="reservior.file.accepted0.detail">
+    <![CDATA[
+        
+        SELECT T1.ID,T2.USER_ID USERID,T2.USER_NAME USERNAME,T2.ORGNAME,T1.TITLE,
+        DP.ITNM,SEE.MOBILE,CONVERT(varchar(100),T2.URGEDATE, 20) URGEDATE,
+        T1.REMARK, T2.RECEIVED_DATE,
+        (CASE WHEN T2.STATUS IS NULL  THEN '未接收' ELSE '已接收' END) STATUS
+        FROM PAD_RESERVOIR_FILE_OPTION T1
+        LEFT JOIN PAD_RESERVOIR_FILE_OPTION_TARGET T2 ON T1.ID = T2.OPTION_ID
+        LEFT JOIN SMD_EMPLOYEE SEE ON T2.USER_ID = SEE.ID
+        LEFT JOIN  DD_POSITION DP ON SEE.POS_CD = DP.CD
+        WHERE T2.STATUS IS NOT NULL AND T1.ID = ${optionId}
+    ]]>
+    </sql>
+	
+	
+	<sql id="reservior.file.urge.employee">
+	<![CDATA[
+		SELECT T1.TITLE,T2.USER_NAME USERNAME,T3.MOBILE FROM PAD_RESERVOIR_FILE_OPTION T1
+		LEFT JOIN PAD_RESERVOIR_FILE_OPTION_TARGET T2 ON T1.ID = T2.OPTION_ID
+		LEFT JOIN SMD_EMPLOYEE T3 ON  T3.ID = T2.USER_ID
+		WHERE 1=1 
+		#if (${employeeId})
+			AND T2.USER_ID = '${employeeId}'
+		#end 
+		AND T2.OPTION_ID = ${optionId}
+		AND T2.STATUS IS NULL
+	]]>
+	</sql>
+	
+	<sql id="reservior.file.urge.update">
+	<![CDATA[
+		UPDATE PAD_RESERVOIR_FILE_OPTION_TARGET SET URGEDATE='${urgDate}' 
+		WHERE 1=1
+		#if (${employeeId})
+			AND USER_ID = '${employeeId}'
+		#end 
+		AND OPTION_ID = ${optionId} 
+		AND STATUS IS NULL
+	]]>
+	</sql>
+	
+    <sql id="record-review.page">
+        <![CDATA[
+        select rr.id, rr.name, u.name as userName, rr.applied_time, o.name as orgName, rr.status, rr.original_file as originalFile,
+               (select top 1 rsincd from pad_reservoir_record_review_detail rrd where rrd.rev_id = rr.id) as rsincd,
+               (select stuff((select ';' + paper_path as [text()] from PAD_RESERVOIR_RECORD_REVIEW_PAPER rrp where rrp.REV_ID = rr.id for xml path('')), 1, 1, '')) as paths
+        from pad_reservoir_record_review rr 
+        left join smd_user u
+        on u.id = rr.applied_user_id
+        left join smd_organization o
+        on o.id = rr.org_id
+        where (rr.status = '${pending}' or rr.status in (${processed}))
+        #if (${name}) 
+         and rr.name like '%${name}%'
+        #end 
+        and ${priv.get('u', 'id', 'UR')} 
+        order by rr.applied_time desc;
+        ]]>
+    </sql>
+    
+    <sql id="record-review.deleteApply">
+        <![CDATA[
+        update pad_reservoir_record_review_detail 
+        set rev_id = null
+        where rev_id = ${id};
+        
+        delete from pad_reservoir_record_review where id = ${id};
+        delete from pad_reservoir_record_review_paper where rev_id = ${id};
+        ]]>
+    </sql>
+    
+    <sql id="record-review.page1">
+        <![CDATA[
+        select rr.id, rr.name, u.name as userName, rr.applied_time, o.name as orgName, rr.status, rr.original_file as originalFile, rr.comment, 
+               (select stuff((select ';' + paper_path as [text()] from PAD_RESERVOIR_RECORD_REVIEW_PAPER rrp where rrp.REV_ID = rr.id for xml path('')), 1, 1, '')) as paths
+        from pad_reservoir_record_review rr 
+        left join smd_user u
+        on u.id = rr.applied_user_id
+        left join smd_organization o
+        on o.id = rr.org_id
+        where 1 = 1 
+        #if (${name}) 
+         and rr.name like '%${name}%'
+        #end 
+        and ${priv.get('u', 'id', 'UR')} 
+        order by rr.applied_time desc;
+        ]]>
+    </sql>
+    
+    <sql id="record-review-detail.page">
+        <![CDATA[
+        select basic.RSINCD,basic.RSNM, basic.PRSC, basic.PRST, dept.MNUNNM, basic.CNTY, dept.MNUNCN, audit.RGNM, 
+        dept.MNUNMBL, block.MAXDMHG, block.DMTP, ch.TTSTCP
+        from PAD_RESERVOIR_BASIC basic 
+        left join PAD_RESERVOIR_DEPARTMENT_AND_PIC  dept on dept.RSINCD = basic.RSINCD 
+        left join PAD_RESERVOIR_BLOCK_WATER_BUILD block on block.rsincd = basic.rsincd and block.DMNM = '主坝'
+        left join PAD_RESERVOIR_CHARACTERISTICS ch on ch.rsincd = basic.rsincd
+        left join PAD_RESERVOIR_AUDIT_ALL audit on audit.rsincd = basic.rsincd
+        where basic.RSINCD in (select RSINCD from pad_reservoir_record_review_detail where status = '${status}' and rev_id is null) 
+        #if (${RSNM}) 
+         and basic.RSNM like '%${RSNM}%'
+         #end 
+         #if (${CNTY}) 
+         and basic.CNTY_CD like '%${CNTY}%' 
+         #end
+         #if (${PRSC}) 
+         and basic.PRSC like '%${PRSC}%' 
+         #end
+        and ${priv.get('basic', 'wrcd', 'WR', '2,3')} order by basic.RSINCD desc;
+        ]]>
+    </sql>
+    
+    <sql id="record-review-detail.select">
+        <![CDATA[
+        select basic.RSINCD, basic.RSNM, basic.CNTY, basic.PRST, rr.OLD_VALUE, rr.NEW_VALUE, rr.COLUMN_READABLE_TEXT, rr.TABLE_READABLE_TEXT, rr.TABLE_NAME, rr.COLUMN_NAME
+        from PAD_RESERVOIR_BASIC basic 
+        left join pad_reservoir_record_review_detail rr on rr.rsincd = basic.rsincd
+        where rr.status = 'C' and rr.readable = 'Y' and basic.rsincd in (${rsincds})
+        order by rr.rsincd
+        ]]>
+    </sql>
+    
+    <sql id="record-review.sms">
+        <![CDATA[
+        select mobile, rr.name from smd_employee se, smd_user su, pad_reservoir_record_review rr
+        where se.id = su.emp_id and rr.applied_user_id = su.id and rr.id = ${id}
+        ]]>
+    </sql>
+    
+    <sql id="record-review-detail.insert">
+<![CDATA[
+    insert into pad_reservoir_record_review_detail (
+        rsincd, table_name, table_readable_text, column_name, column_readable_text, 
+        old_value, new_value, last_modified_time, operation, user_id, readable, status, rev_id
+    ) values (
+        ${rsincd}, ${helper.sql(${bcr.tableName})}, ${helper.sql(${bcr.readableText})}, ${helper.sql(${pcr.columnName})}, ${helper.sql(${pcr.readableText})},
+        ${helper.sql(${pcr.oldValue})}, ${helper.sql(${pcr.newValue})}, '${tm}', '${operation}', ${user.id}, '${pcr.getReadable()}', 'C', null
+    );
+]]>
+    </sql>
+    <sql id="record-review-detail.update">
+<![CDATA[
+    update pad_reservoir_record_review_detail
+    set new_value = ${helper.sql(${pcr.newValue})}, user_id = ${user.id}, last_modified_time = getdate()
+    where rsincd = ${rsincd} and table_name = '${bcr.tableName}' and column_name = '${pcr.columnName}' and status = 'C'
+]]>
+    </sql>
+    <sql id="record-review-detail.count">
+<![CDATA[
+    select count(*) as count from  pad_reservoir_record_review_detail
+    where rsincd = ${rsincd} and table_name = '${bcr.tableName}' and column_name = '${pcr.columnName}' and status = 'C'
+]]>
+    </sql>
+    <sql id="record-review-detail.delete">
+<![CDATA[
+    delete from pad_reservoir_record_review_detail
+    where rsincd = ${rsincd} and table_name = '${table}' and column_name = '${column}' and status = 'C'
+]]>
+    </sql>
+    
+    <sql id="record-review.insert">
+<![CDATA[
+    insert into pad_reservoir_record_review (
+        id, comment, status, applied_user_id, approved_user_id, applied_time, approved_time, name, org_id
+    ) values (
+        ${id},  null, 'C', ${user.id}, null, getdate(), null, '${name}', ${helper.sql(${orgId})}
+    );
+#foreach ($detail in $details)
+    update pad_reservoir_record_review_detail set source=${helper.sql(${detail.source})}, comment=${helper.sql(${detail.comment})}
+    where rsincd = ${detail.rsincd} and status = 'C' and table_name = '${detail.tableName}' and column_name = '${detail.columnName}';
+    
+    update pad_reservoir_record_review_detail set rev_id = ${id}
+    where rsincd = ${detail.rsincd} and status = 'C';
+#end
+]]>
+    </sql>
+    
+    <sql id="record-review.download">
+<![CDATA[
+    update pad_reservoir_record_review set original_file = '${originalFile}' where id = ${id};
+]]>
+    </sql>
+    
+    <sql id="record-review.update">
+<![CDATA[
+#foreach ($detail in $details)
+    update pad_reservoir_record_review_detail set source=${helper.sql(${detail.source})}, comment=${helper.sql(${detail.comment})}
+    where rsincd = ${detail.rsincd} and status = 'C' and table_name = '${detail.tableName}' and column_name = '${detail.columnName}';
+    
+    update pad_reservoir_record_review_detail set rev_id = ${id}
+    where rsincd = ${detail.rsincd} and status = 'C';
+#end
+]]>
+    </sql>
+    
+    <sql id="record-review.apply">
+<![CDATA[
+    update pad_reservoir_record_review set status = 'P' where id = ${id};
+#foreach ($detail in $details)
+    update pad_reservoir_record_review_detail set source='${detail.source}', comment=${helper.sql(${detail.comment})}
+    where rsincd = ${detail.rsincd} and status = 'C' and table_name = '${detail.tableName}' and column_name = '${detail.columnName}'
+    
+    update pad_reservoir_record_review_detail set rev_id = ${id}, status = 'P' 
+    where rsincd = ${detail.rsincd} and status = 'C'  
+#end
+]]>
+    </sql>
+    
+    <sql id="record-review.applySubmit">
+<![CDATA[
+    update pad_reservoir_record_review set status = 'P' where id = ${revId};
+    update pad_reservoir_record_review_detail set status = 'P' where rev_id = ${revId};
+]]>
+    </sql>
+    
+    <sql id="record-review.fail">
+<![CDATA[
+    update pad_reservoir_record_review set status = 'F', comment = '${comment}' where id = ${id};
+    update pad_reservoir_record_review_detail set status = 'F' where rev_id = ${id};
+]]>
+    </sql>
+    
+    <sql id="record-review.pass">
+<![CDATA[
+    #if (${sql})
+    ${sql};
+    insert into smd_log_reservoir (rsincd, bean, bean_readable_text, property, property_readable_text, old_value, new_value, last_modified_time, operation, user_id, readable)
+    select rsincd, TABLE_NAME, TABLE_READABLE_TEXT, COLUMN_NAME, COLUMN_READABLE_TEXT, OLD_VALUE, NEW_VALUE, GETDATE(), OPERATION, USER_ID, READABLE 
+    from pad_reservoir_record_review_detail
+    where rev_id = ${id} and status = 'P';
+    #end
+    update pad_reservoir_record_review set status = 'A', approved_time = getdate(), approved_user_id = ${user.id} where id = ${id};
+    update pad_reservoir_record_review_detail set status = 'A' where rev_id = ${id} and status = 'P';
+]]>
+    </sql>
+    
+    <sql id="record-review-detail.selectByRevId">
+<![CDATA[
+    select basic.RSINCD, basic.RSNM, basic.CNTY, basic.PRST, rr.OLD_VALUE, rr.NEW_VALUE, rr.COLUMN_READABLE_TEXT, rr.TABLE_READABLE_TEXT, rr.TABLE_NAME, rr.COLUMN_NAME,
+        rr.SOURCE, rr.COMMENT, rr.OPERATION
+        from PAD_RESERVOIR_BASIC basic 
+        left join pad_reservoir_record_review_detail rr on rr.rsincd = basic.rsincd
+        where rev_id = ${id} and rr.readable = 'Y' order by table_name, operation;
+        -- select * from pad_reservoir_record_review_detail where rev_id = ${id} order by table_name, operation;
+]]>
+    </sql>
+    
+    <!-- pass -->
+    <sql id="record-review-detail.selectByRevId1">
+<![CDATA[
+    select basic.RSINCD, basic.RSNM, basic.CNTY, basic.PRST, rr.OLD_VALUE, rr.NEW_VALUE, rr.COLUMN_READABLE_TEXT, rr.TABLE_READABLE_TEXT, rr.TABLE_NAME, rr.COLUMN_NAME,
+        rr.SOURCE, rr.COMMENT, rr.OPERATION
+        from PAD_RESERVOIR_BASIC basic 
+        left join pad_reservoir_record_review_detail rr on rr.rsincd = basic.rsincd
+        where rev_id = ${id} order by operation, rsincd, table_name, last_modified_time;
+        -- select * from pad_reservoir_record_review_detail where rev_id = ${id} order by table_name, operation;
+]]>
+    </sql>
+    
+    <sql id="record-review-paper.insert">
+<![CDATA[
+    insert into pad_reservoir_record_review_paper (
+        id, rev_id, paper_path
+    ) values (
+        ${id}, ${revId}, '${paperPath}'
+    );
+]]>    
+    </sql>
+    <sql id="record-review-paper.delete">
+<![CDATA[
+    delete from pad_reservoir_record_review_paper where paper_path = '${path}';
+]]>
+    </sql>
+
+
+	<!--短信记录-->
+	<sql id="record-message-history.get">
+		<![CDATA[
+    select *,CONVERT(varchar(100),sendtime, 20) as time from PAD_RESERVOIR_MESSAGE_HISTORY where 1=1
+    #if (${receiveid})
+        and receiveemprid = ${receiveid}
+    #end
+    #if (${sendid})
+        and senduserid = ${sendid}
+    #end
+	order by time desc
+]]>
+	</sql>
+	<sql id="record-message-history.insert">
+		<![CDATA[
+        #foreach( $criterion in $criteria )
+            insert into PAD_RESERVOIR_MESSAGE_HISTORY
+                (senduserid,sendusername,receiveemprid,receiveempname,receivemobile,msg,sendtime,type)
+            values
+                ($criterion.get("sendid"),'$criterion.get("sendname")',$criterion.get("receiveid"),(select NAME from SMD_EMPLOYEE where ID=$criterion.get("receiveid")),
+                '$criterion.get("mobile")','$criterion.get("msg")','$criterion.get("sendtime")','msg')
+        #end
+]]>
+	</sql>
+	<sql id="record-message-history.delete">
+		<![CDATA[
+    delete from PAD_RESERVOIR_MESSAGE_HISTORY where 1=1
+    #if (${id})
+        and id = ${id}
+    #end
+    #if (${sendid})
+        and senduserid=${sendid}
+    #end
+    #if (${receiveid})
+        and receiveemprid=${receiveid}
+    #end
+
+]]>
+	</sql>
+
+</sqls>
