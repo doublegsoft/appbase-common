@@ -18,6 +18,7 @@ package net.doublegsoft.appbase.util;
 import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import net.sourceforge.pinyin4j.PinyinHelper;
 
@@ -105,6 +106,11 @@ public class Strings {
       return "";
     }
     return str.trim();
+  }
+
+  public static String id() {
+    UUID uuid = UUID.randomUUID();
+    return uuid.toString().toUpperCase();
   }
 
   /**
