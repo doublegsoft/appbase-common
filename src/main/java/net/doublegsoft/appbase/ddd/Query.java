@@ -14,6 +14,6 @@ package net.doublegsoft.appbase.ddd;
  *
  * @since 1.0
  */
-public interface Query {
+public interface Query<V> {
 
 }
