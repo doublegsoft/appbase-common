@@ -367,29 +367,30 @@ public class CommonService {
     return single(sqlId, new SqlParams().set(name, value));
   }
 
-  public void prepare(String sqlId, SqlParams params, Blob... blobs) throws ServiceException {
+  public void prepare(String sqlId, SqlParams params, Object... objs) throws ServiceException {
     try {
       String sql = sqlManager.getSql(sqlId, params);
       if (DEBUG) {
         TRACER.info(sql);
       }
-      commonDataAccess.prepare(sql, blobs);
+      commonDataAccess.prepare(sql, objs);
     } catch (DataAccessException | IOException ex) {
       throw new ServiceException(ex);
     }
   }
 
-  public void prepare(String sqlId, SqlParams params, InputStream... streams) throws ServiceException {
+  public List<ObjectMap> prepareQuery(String sqlId, Object... objs) throws ServiceException {
     try {
-      String sql = sqlManager.getSql(sqlId, params);
+      String sql = sqlManager.getSql(sqlId, new SqlParams());
       if (DEBUG) {
         TRACER.info(sql);
       }
-      commonDataAccess.prepare(sql, streams);
+      return commonDataAccess.prepareQuery(sql, objs);
     } catch (DataAccessException | IOException ex) {
       throw new ServiceException(ex);
     }
   }
+
 
   /**
    * @see JdbcCommonDataAccess#call(String)
@@ -404,12 +405,12 @@ public class CommonService {
     }
   }
 
-  public void beginTransaction(int level) throws ServiceException {
+  public void beginTransaction(int level)  {
     if (commonDataAccess instanceof JdbcCommonDataAccess) {
       try {
         ((JdbcCommonDataAccess) commonDataAccess).beginTransaction(level);
       } catch (DataAccessException ex) {
-        throw new ServiceException(ex);
+        TRACER.error("数据库开始事务出错", ex);
       }
     }
   }
@@ -419,17 +420,17 @@ public class CommonService {
       try {
         ((JdbcCommonDataAccess) commonDataAccess).beginTransaction();
       } catch (DataAccessException ex) {
-        throw new ServiceException(ex);
+        TRACER.error("数据库开始事务出错", ex);
       }
     }
   }
 
-  public void commit() throws ServiceException {
+  public void commit() {
     if (commonDataAccess instanceof JdbcCommonDataAccess) {
       try {
         ((JdbcCommonDataAccess) commonDataAccess).commit();
       } catch (DataAccessException ex) {
-        throw new ServiceException(ex);
+        TRACER.error("数据库提交事务出错", ex);
       }
     }
   }
@@ -439,7 +440,7 @@ public class CommonService {
       try {
         ((JdbcCommonDataAccess) commonDataAccess).rollback();
       } catch (DataAccessException ex) {
-        TRACER.error(ex.getMessage(), ex);
+        TRACER.error("数据库回滚事务出错", ex);
       }
     }
   }

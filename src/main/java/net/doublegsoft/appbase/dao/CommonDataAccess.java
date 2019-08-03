@@ -127,27 +127,15 @@ public interface CommonDataAccess {
    * @param sql
    *          the sql statement
    * 
-   * @param blobs
-   *          the blob parameters
+   * @param objs
+   *          the any jdbc objects
    * 
    * @throws DataAccessException
    *           in case of database access errors
    */
-  public void prepare(String sql, Blob... blobs) throws DataAccessException;
+  public void prepare(String sql, Object... objs) throws DataAccessException;
 
-  /**
-   * Prepares and executes a sql statement with only input streams.
-   * 
-   * @param sql
-   *          the sql statement
-   * 
-   * @param streams
-   *          the input stream parameters
-   * 
-   * @throws DataAccessException
-   *           in case of database access errors
-   */
-  public void prepare(String sql, InputStream... streams) throws DataAccessException;
+  List<ObjectMap> prepareQuery(String sql, Object... objs) throws DataAccessException;
 
   /**
    * Gets the many results.

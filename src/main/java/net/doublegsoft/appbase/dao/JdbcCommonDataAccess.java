@@ -52,6 +52,7 @@ public class JdbcCommonDataAccess implements CommonDataAccess, Closeable {
       if (rs != null) {
         ResultSetMetaData metadata = rs.getMetaData();
         int columnCount = metadata.getColumnCount();
+        rs.next();
         for (int i = 1; i <= columnCount; ++i) {
           retVal.set(metadata.getColumnLabel(i), getAndConvert(metadata, rs, i));
         }
@@ -90,10 +91,10 @@ public class JdbcCommonDataAccess implements CommonDataAccess, Closeable {
   }
 
   @Override
-  public void prepare(String sql, Blob... blobs) throws DataAccessException {
+  public void prepare(String sql, Object... objs) throws DataAccessException {
     try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
-      for (int i = 1; i <= blobs.length; i++) {
-        pstmt.setBlob(i, blobs[i - 1]);
+      for (int i = 1; i <= objs.length; i++) {
+        pstmt.setObject(i, objs[i - 1]);
       }
       pstmt.execute();
     } catch (SQLException ex) {
@@ -101,13 +102,23 @@ public class JdbcCommonDataAccess implements CommonDataAccess, Closeable {
     }
   }
 
-  @Override
-  public void prepare(String sql, InputStream... streams) throws DataAccessException {
+  public List<ObjectMap> prepareQuery(String sql, Object... objs) throws DataAccessException {
+    List<ObjectMap> retVal = new ArrayList<>();
     try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
-      for (int i = 1; i <= streams.length; i++) {
-        pstmt.setBlob(i, streams[i - 1]);
+      for (int i = 1; i <= objs.length; i++) {
+        pstmt.setObject(i, objs[i - 1]);
       }
-      pstmt.execute();
+      ResultSet rs = pstmt.executeQuery();
+      ResultSetMetaData metadata = rs.getMetaData();
+      int columnCount = metadata.getColumnCount();
+      while (rs.next()) {
+        ObjectMap obj = new ObjectMap();
+        for (int i = 1; i <= columnCount; ++i) {
+          obj.set(metadata.getColumnLabel(i), getAndConvert(metadata, rs, i));
+        }
+        retVal.add(obj);
+      }
+      return retVal;
     } catch (SQLException ex) {
       throw new DataAccessException(ex);
     }
@@ -254,7 +265,7 @@ public class JdbcCommonDataAccess implements CommonDataAccess, Closeable {
   public List<ObjectMap> call(String sql) throws DataAccessException {
     List<ObjectMap> retVal = new ArrayList<>();
     try (CallableStatement stmt = conn.prepareCall(sql)) {
-      ResultSet rs = stmt.executeQuery(sql);
+      ResultSet rs = stmt.executeQuery();
       ResultSetMetaData metadata = rs.getMetaData();
       int columnCount = metadata.getColumnCount();
       while (rs.next()) {

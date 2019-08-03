@@ -54,6 +54,9 @@ public final class DomainEvents {
       return;
     }
     List<EventHandler<Event>> chain = HANDLERS.get(event.getClass());
+    if (chain == null) {
+      return;
+    }
     for (EventHandler<Event> handler : chain) {
       try {
         handler.handle(event);
