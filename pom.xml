@@ -205,6 +205,12 @@
       <id>cqwinning-repository</id>
       <url>http://120.79.137.143:8081/repository/maven-releases/</url>
     </repository>
+    <!--
+    <repository>
+      <id>doublegsoft-repository</id>
+      <url>http://nexus.doublegsoft.com:8081/repository/maven-releases/</url>
+    </repository>
+    -->
   </distributionManagement>
 
   <repositories>

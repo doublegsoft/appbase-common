@@ -58,6 +58,10 @@ public class SqlParams extends TreeMap<String, Object> {
   }
 
   public SqlParams set(String name, Object value) {
+    if (name.equalsIgnoreCase("orderBy")) {
+      super.put(name, value);
+      return this;
+    }
     super.put(name, objectToNative(value));
     return this;
   }
